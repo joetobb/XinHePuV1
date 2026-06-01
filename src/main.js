@@ -46,7 +46,7 @@ async function loadModel() {
   try {
     const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4839323, {
         // 画质与稳定性平衡配置
-        maximumScreenSpaceError: 16,//模型清晰度（画质）控制,数字越小 → 越清晰、越精细、瓦片越多,数字越大 → 越模糊、越粗糙、瓦片越少
+        maximumScreenSpaceError: 64,//模型清晰度（画质）控制,数字越小 → 越清晰、越精细、瓦片越多,数字越大 → 越模糊、越粗糙、瓦片越少
         skipLevelOfDetail: false,//是否允许 “跳层级加载”;不跳级，完整加载，模型更完整、不缺块,跳级加载，加载快，但模型会缺块、模糊
         dynamicScreenSpaceError: false,//是否开启 “动态自动优化画质”;固定清晰度，不动态变化 → 不闪烁、不跳动,镜头一动就自动改清晰度 → 会闪烁、会跳块
         cullRequestsWhileMoving: false,//移动镜头时，是否卸载已经加载好的瓦片
