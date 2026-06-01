@@ -25,7 +25,7 @@ viewer.scene.fog.enabled = false;
 // ==============================================
 const tiandituImg = new Cesium.UrlTemplateImageryProvider({
   url: `https://t{s}.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=${TDT_KEY}`,
-  subdomains: ["0", "1"，“2”，“3”],
+  subdomains: ["0", "1"，"2"，"3"],
   tilingScheme: new Cesium.WebMercatorTilingScheme(),
   maximumLevel: 18
 });
