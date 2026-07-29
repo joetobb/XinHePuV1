@@ -93,3 +93,5 @@ async function loadModel() {
     alert("加载失败，请检查模型服务是否启动，或 URL 是否正确！");
   }
 }
+
+loadModel();
