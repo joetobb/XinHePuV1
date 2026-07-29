@@ -41,7 +41,7 @@ async function loadModel() {
   try {
     tileset = await Cesium.Cesium3DTileset.fromIonAssetId(5096914, {
       // ========== 基础画质参数 ==========
-      maximumScreenSpaceError: 8,
+      maximumScreenSpaceError: 4,
       skipLevelOfDetail: false, // 彻底关闭层级跳级，杜绝精度断层空洞
       
       // ========== 解决瓦片丢失核心参数 ==========
@@ -51,6 +51,7 @@ async function loadModel() {
       cullWithChildrenBounds: false,
       // 移动时不取消瓦片请求：视角快速拖动后，瓦片不会中断加载
       cullRequestsWhileMoving: false,
+      cullRequestsWhileMovingMultiplier: 0,
       // 加载失败自动重试：解决网络波动导致的偶发随机空洞
       retryFailedRequests: true,
       // 非可视区域瓦片也预加载：视角切换时不会出现大面积空白
@@ -62,12 +63,21 @@ async function loadModel() {
       dynamicScreenSpaceErrorFactor: 3.0, // 收窄降质幅度，避免过度跳级
 
       // ========== 缓存与内存（避免瓦片被频繁卸载） ==========
-      tileCacheSize: 3000,
-      maximumMemoryUsage: 3072, // 放宽到3GB内存，保留更多高清瓦片
-      maximumNumberOfLoadedTiles: 2000 // 放宽同时加载的瓦片数量上限
+      tileCacheSize: 5000,
+      maximumMemoryUsage: 4096, // 放宽到3GB内存，保留更多高清瓦片
+      maximumNumberOfLoadedTiles: 3000 // 放宽同时加载的瓦片数量上限
+      // ========== 动态精度弱化，拉近不会自动降质 ==========
+      dynamicScreenSpaceError: true,
+      dynamicScreenSpaceErrorDensity: 0.001,
+      dynamicScreenSpaceErrorFactor: 1.0,
     });
 
     viewer.scene.primitives.add(tileset);
+
+  // ========== 全局相机近裁剪面修复（重中之重！） ==========
+    // 拉近镜头时相机不会裁掉近处建筑瓦片
+    viewer.camera.near = 0.1;
+    viewer.camera.far = 100000;
 
     await tileset.readyPromise;
     const height = -10;
