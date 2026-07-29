@@ -14,12 +14,21 @@ const viewer = new Cesium.Viewer('cesiumContainer', {
   terrainProvider: new Cesium.EllipsoidTerrainProvider()
 });
 
-// ========== 新增：全局渲染画质优化（解决整体发虚、边缘锯齿） ==========
-// 适配屏幕像素比，高分屏（2K/4K/笔记本屏）不再发虚
-viewer.resolutionScale = window.devicePixelRatio || 1;
-// 开启4倍多重采样抗锯齿，消除模型边缘锯齿感
-viewer.scene.msaaSamples = 4;
-// 关闭地形深度检测、关闭雾效，保留你原有配置
+// ========== 全局渲染：自动适配设备 ==========
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+if (isMobile) {
+  // 移动端：降配保稳定，避免崩溃
+  viewer.resolutionScale = 1.0; // 强制1:1渲染，降低GPU压力
+  viewer.scene.msaaSamples = 1; // 关闭抗锯齿，移动端GPU性能不足
+  viewer.camera.near = 0.5;     // 恢复默认近裁剪面，避免深度精度问题
+} else {
+  // PC端：保持高清画质
+  viewer.resolutionScale = window.devicePixelRatio || 1;
+  viewer.scene.msaaSamples = 4;
+  viewer.camera.near = 0.1;
+}
+
 viewer.scene.globe.show = true;
 viewer.scene.globe.baseColor = Cesium.Color.TRANSPARENT;
 viewer.scene.globe.depthTestAgainstTerrain = false;
@@ -36,43 +45,44 @@ viewer.imageryLayers.addImageryProvider(tiandituImg);
 
 let tileset;
 
-// 4. 加载 ion 模型（画质核心优化段）
+// 4. 加载模型：设备自适应参数
 async function loadModel() {
   try {
-    tileset = await Cesium.Cesium3DTileset.fromIonAssetId(5096914, {
-      // 画质基础
-      maximumScreenSpaceError: 4, // 近距离极致清晰，减少层级断层
+    // 按设备区分加载参数
+    const tilesetOptions = isMobile ? {
+      // 移动端：稳定优先，低内存、低精度
+      maximumScreenSpaceError: 16,
+      skipLevelOfDetail: true,
+      occlusionCulling: true,
+      cullWithChildrenBounds: true,
+      cullRequestsWhileMoving: true,
+      retryFailedRequests: true,
+      tileCacheSize: 500,
+      maximumMemoryUsage: 512, // 移动端限制512MB内存，避免溢出崩溃
+      maximumNumberOfLoadedTiles: 300,
+      dynamicScreenSpaceError: true,
+      dynamicScreenSpaceErrorDensity: 0.005,
+      dynamicScreenSpaceErrorFactor: 6.0
+    } : {
+      // PC端：高清优先，防瓦片消失
+      maximumScreenSpaceError: 4,
       skipLevelOfDetail: false,
-
-      // ========== 解决近距离瓦片消失核心参数 ==========
-      // 1. 关闭遮挡剔除，杜绝建筑自身遮挡误删瓦片
       occlusionCulling: false,
-      // 2. 关闭子边界裁剪，近距离建筑边缘不会被裁掉
       cullWithChildrenBounds: false,
-      // 3. 关闭移动时取消瓦片请求，拉近镜头持续加载精细瓦片
       cullRequestsWhileMoving: false,
       cullRequestsWhileMovingMultiplier: 0,
-      // 4. 加载失败自动重试，网络波动不会永久空洞
       retryFailedRequests: true,
       preloadWhenHidden: true,
-
-      // ========== 缓存&内存扩容，保留近距离高清瓦片 ==========
       tileCacheSize: 5000,
-      maximumMemoryUsage: 4096, // 4GB内存上限，缓存更多精细瓦片
-      maximumNumberOfLoadedTiles: 3000, // 同时加载瓦片数量拉满
-
-      // ========== 动态精度弱化，拉近不会自动降质 ==========
+      maximumMemoryUsage: 4096,
+      maximumNumberOfLoadedTiles: 3000,
       dynamicScreenSpaceError: true,
       dynamicScreenSpaceErrorDensity: 0.001,
-      dynamicScreenSpaceErrorFactor: 1.0,
-    });
+      dynamicScreenSpaceErrorFactor: 1.0
+    };
 
+    tileset = await Cesium.Cesium3DTileset.fromIonAssetId(5096914, tilesetOptions);
     viewer.scene.primitives.add(tileset);
-
-    // ========== 全局相机近裁剪面修复（重中之重！） ==========
-    // 拉近镜头时相机不会裁掉近处建筑瓦片
-    viewer.camera.near = 0.1;
-    viewer.camera.far = 100000;
 
     await tileset.readyPromise;
     const height = -10;
@@ -92,7 +102,7 @@ async function loadModel() {
     tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
 
     viewer.flyTo(tileset, { duration: 2 });
-    console.log("✅ 模型加载完成，近距离瓦片防丢失参数已启用");
+    console.log(`✅ ${isMobile ? '移动端' : 'PC端'}模型加载成功`);
   } catch (error) {
     console.error("❌ 模型加载失败：", error);
     alert("加载失败，请检查模型服务是否启动，或 URL 是否正确！");
