@@ -9,6 +9,6 @@ export default defineConfig({
     }
   },
   define: {
-    CESIUM_BASE_URL: JSON.stringify('/HNanQilouTestV1.2/cesium')
+    CESIUM_BASE_URL: JSON.stringify('/XinHePuV1/cesium')
   }
 })
