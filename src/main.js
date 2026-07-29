@@ -50,7 +50,7 @@ async function loadModel() {
     viewer.scene.primitives.add(tileset);
 
     await tileset.readyPromise;
-    const height = 10;
+    const height = 3;
     const center = tileset.boundingSphere.center;
     const cartographic = Cesium.Cartographic.fromCartesian(center);
     const surface = Cesium.Cartesian3.fromRadians(
