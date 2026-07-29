@@ -38,7 +38,7 @@ let tileset;
 // 4. 加载 ion 模型
 async function loadModel() {
   try {
-    const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4839323, {
+    const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(5096914, {
       maximumScreenSpaceError: 64,
       skipLevelOfDetail: false,
       dynamicScreenSpaceError: false,
