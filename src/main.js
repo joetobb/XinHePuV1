@@ -39,26 +39,32 @@ let tileset;
 // 4. 加载 ion 模型（画质核心优化段）
 async function loadModel() {
   try {
-    // 修复：移除内部重复const声明，复用外层变量
     tileset = await Cesium.Cesium3DTileset.fromIonAssetId(5096914, {
-      // ========== 核心画质参数：从64降到8，清晰度提升8倍 ==========
-      // 屏幕空间误差：数值越小，模型纹理越清晰，推荐4~16
+      // ========== 基础画质参数 ==========
       maximumScreenSpaceError: 8,
-
-      // 强制不跳级加载，避免远距离始终显示低清瓦片
-      skipLevelOfDetail: false,
-
-      // 开启动态精度：视角移动时降速保流畅，静止后自动加载高清瓦片
-      dynamicScreenSpaceError: true,
-      dynamicScreenSpaceErrorDensity: 0.002,
-      dynamicScreenSpaceErrorFactor: 4.0,
-
-      // 移动时不剔除瓦片请求，避免拖动过程中出现大面积模糊块
+      skipLevelOfDetail: false, // 彻底关闭层级跳级，杜绝精度断层空洞
+      
+      // ========== 解决瓦片丢失核心参数 ==========
+      // 关闭遮挡剔除：密集建筑区最常见的空洞元凶，避免误判“被挡住的瓦片不加载”
+      occlusionCulling: false,
+      // 关闭子瓦片边界裁剪：解决模型接缝、边缘处的小块透明缺失
+      cullWithChildrenBounds: false,
+      // 移动时不取消瓦片请求：视角快速拖动后，瓦片不会中断加载
       cullRequestsWhileMoving: false,
+      // 加载失败自动重试：解决网络波动导致的偶发随机空洞
+      retryFailedRequests: true,
+      // 非可视区域瓦片也预加载：视角切换时不会出现大面积空白
+      preloadWhenHidden: true,
 
-      // ========== 缓存与内存：修正原不合理的超大数值 ==========
-      tileCacheSize: 2000,          // 瓦片缓存数量，足够保留高清层级
-      maximumMemoryUsage: 2048      // 最大内存占用（MB），2GB足够高清模型，避免溢出
+      // ========== 动态精度（降低激进程度） ==========
+      dynamicScreenSpaceError: true,
+      dynamicScreenSpaceErrorDensity: 0.003,
+      dynamicScreenSpaceErrorFactor: 3.0, // 收窄降质幅度，避免过度跳级
+
+      // ========== 缓存与内存（避免瓦片被频繁卸载） ==========
+      tileCacheSize: 3000,
+      maximumMemoryUsage: 3072, // 放宽到3GB内存，保留更多高清瓦片
+      maximumNumberOfLoadedTiles: 2000 // 放宽同时加载的瓦片数量上限
     });
 
     viewer.scene.primitives.add(tileset);
@@ -81,11 +87,9 @@ async function loadModel() {
     tileset.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
 
     viewer.flyTo(tileset, { duration: 2 });
-    console.log("✅ 高清模型加载成功");
+    console.log("✅ 模型加载成功");
   } catch (error) {
     console.error("❌ 模型加载失败：", error);
     alert("加载失败，请检查模型服务是否启动，或 URL 是否正确！");
   }
 }
-
-loadModel();
